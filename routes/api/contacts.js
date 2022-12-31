@@ -1,16 +1,22 @@
 const express = require('express')
+const {handleError}= require('../../service/handleError.js')
 const contactsHandlers = require('../../models/contacts.js')
 
 const router = express.Router()
 
-router.get('/', contactsHandlers.listContacts);
+router.get('/', handleError(contactsHandlers.listContacts));
 
-router.get('/:contactId', contactsHandlers.getContactById);
 
-router.post('/', contactsHandlers.addContact);
+router.get('/:contactId', handleError(contactsHandlers.getContactById));
 
-router.delete('/:contactId', contactsHandlers.removeContact);
+router.post('/', handleError(contactsHandlers.addContact));
 
-router.put('/:contactId', contactsHandlers.updateContact);
+router.delete('/:contactId', handleError(contactsHandlers.removeContact));
+
+router.put('/:contactId', handleError(contactsHandlers.updateContact));
+
+router.patch('/:contactId/favorite', handleError(contactsHandlers.updateStatusContact));
+
+router.get('*', contactsHandlers.notPatch);
 
 module.exports = router;
