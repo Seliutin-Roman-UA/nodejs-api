@@ -16,6 +16,9 @@ const contactsSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  owner: {
+    type: String,
+  }
 });
 
 

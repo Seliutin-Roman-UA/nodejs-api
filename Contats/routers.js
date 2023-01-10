@@ -1,11 +1,13 @@
 const express = require('express')
-const {handleError}= require('../../service/handleError.js')
-const contactsHandlers = require('../../models/contacts.js')
+const {handleError}= require('../service/handleError.js')
+const contactsHandlers = require('./controllers.js')
+const {checkUser} = require('../middleware/usermiddleware.js')
 
-const router = express.Router()
+const router = express.Router();
 
-router.get('/', handleError(contactsHandlers.listContacts));
+router.use(checkUser);
 
+router.get('/?', handleError(contactsHandlers.listContacts));
 
 router.get('/:contactId', handleError(contactsHandlers.getContactById));
 
