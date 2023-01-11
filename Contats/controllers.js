@@ -3,10 +3,8 @@ const fs = require('fs/promises');
 const paht = require('path');
 const Joi = require('joi');
 
-const {contactsSchema} = require('./contactsschema.js');
+const {contactsSchema} = require('./schema.js');
 const Contact = mongoose.model('Contact', contactsSchema);
-// const Kitten = mongoose.model('Kitten', kittySchema);
-
 
 const schema = Joi.object({
   name: Joi.string()
@@ -29,21 +27,50 @@ function makeValidate(req, res){
 }
 
 const listContacts = async (req, res) => {
+  const query = req.query;
+  const owner = req.user.id;
+
+  if (query.hasOwnProperty('page') && query.hasOwnProperty('limit')) {
+    const {
+      page = 1,
+      limit = 3,
+    } = req.query;
+
+    if (page < 1 || limit < 3) {
+      res.status(400).json({ "message": "Query params is wrong" });
+      return;
+    } 
     
-  const docs = await Contact.find({});
-  res.status(200).json({"message": docs});
- 
+    const totalRecords = await Contact.find({ owner }).count();
+    const docs = await Contact.find({ owner })
+      .select({ owner: 0, __v: 0 })
+      .skip((+page - 1) * +limit)
+      .limit(+limit);
+    res.json({"message": docs, page, limit, totalRecords});
+
+  } else if (query.hasOwnProperty('favorite')) {
+    const {
+      favorite = true
+    } = req.query;    
+    const docs = await Contact.find({ owner, favorite });
+    res.json({"message": docs});
+
+  } else {
+    res.status(400).json({ "message": "Query params is wrong" });
+    return;
+  }
+  
 }
 
 const getContactById = async (req, res) => {
-
-    const id = req.params.contactId;   
-    await Contact.findById(id)
+  const owner = req.user.id;
+  const _id = req.params.contactId;   
+  await Contact.find({_id, owner})
     .exec((err, doc) => {
-      console.log(id, err, doc);
+      console.log(_id, err, doc);
       if (err) return;
       if (doc === null) {
-        res.status(400).json({"message": `contact not found with id: ${id}`});
+        res.status(400).json({"message": `contact not found with id: ${_id}`});
         return;
       }
       res.status(200).json({"message": doc});
@@ -53,15 +80,14 @@ const getContactById = async (req, res) => {
  
 
 const addContact = async (req, res) => {
-
+    const owner = req.user.id;
     let {name, email, phone, favorite} = req.body;
-    console.log(" field    ====   ",req.body, name, email, phone, favorite); 
     if (!makeValidate(req, res)) return;
     if (!(name && email && phone)) {
       res.status(400).send({"message": "missing required name field"});
       return;
     };
-    const newContact = new Contact({ name, email, phone, favorite});
+    const newContact = new Contact({ name, email, phone, favorite, owner});
     await newContact.save((err, doc)=>{
       if (err) return;
       res.status(201).json({"message": newContact});
@@ -71,7 +97,6 @@ const addContact = async (req, res) => {
 }
 
 const removeContact = async (req, res) => {
-
     const id = req.params.contactId;   
     await Contact.findByIdAndRemove(id)
     .exec((err, doc) => {
@@ -85,8 +110,7 @@ const removeContact = async (req, res) => {
 
 }
 
-const updateContact = async (req, res) => {
-   
+const updateContact = async (req, res) => {   
     const {name, email, phone} = req.body;
     if (!makeValidate(req, res)) return;
     const id = req.params.contactId; 
