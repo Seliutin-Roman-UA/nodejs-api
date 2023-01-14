@@ -12,7 +12,6 @@ async function checkUser(req, res, next) {
     }
     
     req.user = dataUser;
-    console.log("id from token", req.user);
     next();
 }
 module.exports = {
