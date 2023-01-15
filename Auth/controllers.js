@@ -1,7 +1,12 @@
 const mongoose = require('mongoose');
 const Joi = require('joi');
-const {hashPassword, comparePasswords} = require('../Helpers/password.js')
+var gravatar = require('gravatar');
+const fs = require('fs/promises');
+const path = require('path')
 
+
+
+const { hashPassword, comparePasswords } = require('../Helpers/password.js');
 const {userSchema} = require('./schema.js');
 const { generateToken, verifyToken } = require('../Helpers/token.js');
 const User = mongoose.model('User', userSchema);
@@ -27,9 +32,12 @@ function makeValidate(req, res) {
 async function userRegistration(req, res) {
     if (!makeValidate(req, res)) return;
     const password = await hashPassword(req.body.password);
+    var url = gravatar.url(email);
+    console.log("gravatar.url = ", url);
     const newUser = new User({});
     newUser.password = password;
     newUser.email = req.body.email; 
+    newUser.avatarURL = url;
     newUser.save(async (err, data) => {    
         if (err) {
             switch (err.code) {
@@ -93,20 +101,48 @@ async function updateSubscription(req, res) {
     if (subscription) {
         await User.findByIdAndUpdate(id, { $set: { subscription } })
             .exec((err, user) => {
-                if (err) res.status(500).json({"message": err});;
+                if (err) res.status(500).json({"message": err});
                 if (user === null) {
                     res.status(400).json({"message": `user not found with id: ${id}`});
                     return;
                 }    
                 res.json({ "message": "Subscription updated" });
-            })
+        })
        
     }
+}
+
+async function updateAvatar(req, res) {
+    
+    try {
+        const id = req.user.id; 
+        await User.findById(id)
+            .exec(async(err, user) => {                
+                if (err) res.status(500).json({ "message": err });
+                if (user === null) res.status(400).json({ "message": `user not found with id: ${id}`});
+                try {
+                    await fs.access(user.avatarURL, fs.constants.F_OK); 
+                    await fs.unlink(user.avatarURL);                     
+                } catch (err) {
+                    console.log("наверное нет такого файла или что то не так");                  
+                } 
+                user.avatarURL = req.file.newpath;
+                user.save();
+            });
+       
+        await fs.cp(req.file.path, req.file.newpath);  
+        res.json({ "message": "success" });
+    } catch (err) {
+        res.status(400).json({ "message": "File did not save" });
+    } finally {
+        await fs.unlink(req.file.path);         
+    }    
 }
 
 module.exports = {
     userRegistration,
     userLogin,
     getInfoCurrentUser,
-    updateSubscription
+    updateSubscription,
+    updateAvatar
 }

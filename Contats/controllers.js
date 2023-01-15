@@ -1,6 +1,4 @@
 const mongoose = require('mongoose');
-const fs = require('fs/promises');
-const paht = require('path');
 const Joi = require('joi');
 
 const {contactsSchema} = require('./schema.js');
