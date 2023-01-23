@@ -16,12 +16,14 @@ const userSchema = new mongoose.Schema({
     default: "starter",
   },
   avatarURL: String,
-
-  // не понял на фига он нужен
-  // token: {
-  //   type: String,
-  //   default: null,
-  // },
+  verify: {
+      type: Boolean,
+      default: false,
+    },
+    verificationToken: {
+      type: String,
+      default: '',
+    },
 });
 
 

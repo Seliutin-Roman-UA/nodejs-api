@@ -10,28 +10,23 @@ const PATH_AVATAR = path.resolve('./public/avatars');
 const PATH_TMP = path.resolve('./tmp');
 
 const router = express.Router();
-//помоги!!! идея как в Windows усли есть файл - добавляем к нему счетчик
-// не могу это написать асинхронно
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, PATH_TMP)
   },
-  filename: function (req, file, cb) {   // могу добавить async function ...
-    cb(null, getFileName(req, file.originalname, PATH_AVATAR)); //  await getFileName
-  }         // getFileName - напишу тоже в стиле async await
+  filename: function (req, file, cb) {   
+    cb(null, getFileName(req, file.originalname, PATH_AVATAR)); 
+  } 
 })
 
 const upload = multer({ storage: storage }); 
 
-// могу 25 строгу завернуть в функцию... но не понимаю станет ли она в асинхронный стек
-// если не станет тогда storage - с пустым filename
-
-// async function () {
-//    const upload = multer({ storage: storage });
-//} ()
-
 router.post('/signup', userControl.userRegistration);
+
+router.get('/verify/:verificationToken', userControl.verificateToken);
+
+router.post('/verify', userControl.verificateEmail);
 
 router.get('/login', userControl.userLogin);
 
@@ -39,8 +34,6 @@ router.get('/current', checkUser, userControl.getInfoCurrentUser);
 
 router.patch('/users', checkUser, userControl.updateSubscription);
 
-
-// здесь какой то ужас!!! как тут быть с асинхроностью
 router.patch('/avatar', checkUser, upload.single('avatar'),
     (req, res, next) => {
         req.file.newpath = path.join(PATH_AVATAR, req.file.filename);
